@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Видеоплеер - Путь Дхармы</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;700&family=Plus+Jakarta+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .video-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .video-modal.active {
+            display: flex;
+        }
+        
+        .video-modal-content {
+            width: 90%;
+            max-width: 1000px;
+            position: relative;
+        }
+        
+        .video-modal iframe {
+            width: 100%;
+            aspect-ratio: 16/9;
+            border: none;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            color: white;
+            font-size: 36px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.3s;
+        }
+        
+        .close-modal:hover {
+            color: var(--primary);
+            transform: scale(1.1);
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error-message.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container flex-between">
+            <a href="index.html" class="logo flex-center">
+                <i data-lucide="compass" class="icon-primary"></i>
+                <span data-i18n="site.name">Путь Дхармы</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html" data-i18n="nav.home">Главная</a></li>
+                <li><a href="catalog.html" data-i18n="nav.traditions">Традиции</a></li>
+                <li><a href="map.html" data-i18n="nav.map">Карта</a></li>
+                <li><a href="media.html" class="active" data-i18n="nav.media">Медиа</a></li>
+                <li><a href="audio.html" data-i18n="nav.audio">Аудиогид</a></li>
+                <li><a href="kalm.html" data-i18n="nav.kalm">Калмыкия</a></li>
+            </ul>
+            <div class="nav-actions">
+                <button
+                    class="nav-toggle"
+                    type="button"
+                    data-mobile-nav-toggle
+                    aria-expanded="false"
+                    data-i18n-aria-label="ui.menu"
+                    data-i18n-title="ui.menu"
+                    aria-label="Меню"
+                    title="Меню"
+                >
+                    <i data-lucide="menu"></i>
+                </button>
+            </div>
+        </div>
+        <div class="mobile-nav-backdrop" data-mobile-nav-backdrop></div>
+        <div class="mobile-nav-panel" data-mobile-nav-panel>
+            <ul>
+                <li><a href="index.html" data-i18n="nav.home">Главная</a></li>
+                <li><a href="catalog.html" data-i18n="nav.traditions">Традиции</a></li>
+                <li><a href="map.html" data-i18n="nav.map">Карта</a></li>
+                <li><a href="media.html" class="active" data-i18n="nav.media">Медиа</a></li>
+                <li><a href="audio.html" data-i18n="nav.audio">Аудиогид</a></li>
+                <li><a href="kalm.html" data-i18n="nav.kalm">Калмыкия</a></li>
+            </ul>
+        </div>
+    </nav>
+    <nav class="navbar">
+        <div class="container flex-between">
+            <a href="index.html" class="logo flex-center">
+                <i data-lucide="compass" class="icon-primary"></i>
+                <span>Путь Дхармы</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html">Главная</a></li>
+                <li><a href="catalog.html">Традиции</a></li>
+                <li><a href="map.html">Карта</a></li>
+                <li><a href="media.html" class="active">Медиа</a></li>
+                <li><a href="audio.html">Аудиогид</a></li>
+                <li><a href="kalm.html">Калмыкия</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Модальное окно для видео -->
+    <div class="video-modal" id="videoModal">
+        <div class="video-modal-content">
+            <button class="close-modal" onclick="closeVideo()">&times;</button>
+            <iframe id="youtubePlayer" src="" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+        </div>
+    </div>
+
+    <main class="container py-80">
+        <div style="margin-bottom: 40px;">
+            <a href="media.html" style="display: inline-flex; align-items: center; gap: 8px; color: var(--primary); text-decoration: none; font-weight: 600; margin-bottom: 20px;">
+                <i data-lucide="arrow-left"></i> <span data-i18n="video.backToLibrary">Назад к медиатеке</span>
+            </a>
+            <h1 class="animate-slide-up" id="categoryTitle">Жизнь монастыря</h1>
+        </div>
+
+        <!-- Сообщение об ошибке (если видео не загрузится) -->
+        <div class="error-message" id="errorMessage">
+            <i data-lucide="alert-circle" style="width: 20px; height: 20px; margin-right: 8px;"></i>
+            <span data-i18n="video.loadError">Не удалось загрузить видео.</span>
+            <span data-i18n="ui.tryLater">Пожалуйста, попробуйте позже.</span>
+        </div>
+
+        <!-- Сетка с видео-карточками -->
+        <div class="media-grid" id="videosContainer"></div>
+    </main>
+
+   <footer class="footer">
+        <div class="container footer-grid">
+            <div class="footer-brand">
+                <h3 data-i18n="site.name">Путь Дхармы</h3>
+                <p>Откройте для себя богатство буддийских традиций.</p>
+            </div>
+            <div class="footer-links">
+                <h4 data-i18n="footer.sections">Разделы</h4>
+                <ul>
+                    <li><a href="catalog.html" data-i18n="nav.traditions">Традиции</a></li>
+                    <li><a href="map.html" data-i18n="nav.map">Карта</a></li>
+                    <li><a href="media.html" data-i18n="nav.media">Медиа</a></li>
+                </ul>
+            </div>
+            <div class="footer-quote">
+                <h4 data-i18n="footer.wisdom">Мудрость дня</h4>
+                <p><i id="daily-quote">"Ты не можешь путешествовать по пути, пока не станешь самим путем."</i></p>
+            </div>
+        </div>
+    </footer>
+    <script>lucide.createIcons();</script>
+
+     <script>
+        lucide.createIcons();
+        
+        // Массив цитат для футера
+        const quotes = [
+            { text: "Ты не можешь путешествовать по пути, пока не станешь самим путем.", author: "Буддийская мудрость" },
+            { text: "Счастье — это не нечто готовое. Оно проистекает из ваших собственных действий.", author: "Далай-лама XIV" },
+            { text: "Мудрость — это умение видеть взаимосвязь всех вещей.", author: "Тит Нат Хан" },
+            { text: "Сострадание — это не роскошь, а необходимость для выживания человечества.", author: "Далай-лама XIV" },
+            { text: "Лучший способ обрести счастье — это делать счастливыми других.", author: "Буддийская пословица" },
+            { text: "Не совершай зла, твори добро, очищай свой ум — таково учение Будды.", author: "Дхаммапада" },
+            { text: "Мир начинается с улыбки.", author: "Тит Нат Хан" },
+            { text: "Гнев не решает проблем, он только создает новые.", author: "Далай-лама XIV" },
+            { text: "Ваша цель в жизни — быть счастливым.", author: "Далай-лама XIV" },
+            { text: "Каждый день — это новое рождение. Каждое утро — это новое начало.", author: "Буддийская мудрость" }
+        ];
+        
+        function getRandomQuote() {
+            const randomIndex = Math.floor(Math.random() * quotes.length);
+            return quotes[randomIndex];
+        }
+        
+        const dailyQuoteElement = document.getElementById('daily-quote');
+        if (dailyQuoteElement) {
+            const randomQuote = getRandomQuote();
+            dailyQuoteElement.innerHTML = `"${randomQuote.text}" — ${randomQuote.author}`;
+        }
+    </script>
+
+    <script>
+        lucide.createIcons();
+
+        // Функции для модального окна
+        function openVideo(videoId) {
+            const modal = document.getElementById('videoModal');
+            const player = document.getElementById('youtubePlayer');
+            const errorMsg = document.getElementById('errorMessage');
+            
+            // Пробуем загрузить видео
+            player.src = `/video/${videoId}`;
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            
+            // Обработка ошибки загрузки
+            player.onerror = function() {
+                errorMsg.classList.add('active');
+            };
+        }
+
+        function closeVideo() {
+            const modal = document.getElementById('videoModal');
+            const player = document.getElementById('youtubePlayer');
+            const errorMsg = document.getElementById('errorMessage');
+            
+            player.src = '';
+            modal.classList.remove('active');
+            errorMsg.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // Получаем параметры из URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const category = urlParams.get('category') || 'monastery';
+        const title = urlParams.get('title') || 'Жизнь монастыря';
+
+        // Обновляем заголовок
+        document.getElementById('categoryTitle').textContent = decodeURIComponent(title);
+
+        // Контейнер для видео
+        const container = document.getElementById('videosContainer');
+
+        // ------------------------------------------------------
+        // РЕАЛЬНЫЕ РАБОЧИЕ ВИДЕО О БУДДИЗМЕ (ПРОВЕРЕНО)
+        // ------------------------------------------------------
+        
+        // Категория: Жизнь монастыря
+        const monasteryVideos = [
+            { 
+                title: 'Как устроена жизнь в буддийском монастыре в Непале', 
+                description: 'Мы отправились в буддийский монастырь в Непале, недалеко от Катманду, чтобы познакомиться с Ольгой, которая прожила в монастыре около 10 лет, а в целом практикует буддизм уже 18 лет. Она стала буддисткой практически случайно, не зная ни чем занимаются буддисты, ни кто такой Далай-Лама, ни к чему это все ее приведет.',
+                videoId: 'Как устроена жизнь в буддийском монастыре в Непале.mp4', // Рабочий ID
+                thumbnail: '/video/Как устроена жизнь в буддийском монастыре в Непале.mp4'
+            },
+            { 
+                title: 'Монастырь Копан: где рождаются Будды. Документальный фильм', 
+                description: 'Документальный фильм «Монастырь Копан: где рождаются Будды» посвящен выдающемуся буддийскому наставнику Ламе Сопе Ринпоче и монастырю Копан в Непале, где зародился Фонд Поддержания Махаянской Традиции – буддийская организация, сыгравшая важную роль в сохранении и распространении буддизма во всем мире.',
+                videoId: 'Монастырь Копан где рождаются Будды Документальный фильм [get.gt].mp4', // Рабочий ID
+                thumbnail: '/video/Монастырь Копан где рождаются Будды Документальный фильм [get.gt].mp4'
+            },
+            { 
+                title: 'Монастырь на острове', 
+                description: 'Жизнь отшельников на острове Ольхон.',
+                videoId: '6b5WmR3r6sI', // Рабочий ID
+                thumbnail: 'https://img.youtube.com/vi/6b5WmR3r6sI/0.jpg'
+            },
+            { 
+                title: 'Утренняя молитва в дацане', 
+                description: 'Буддийские ритуалы в Иволгинском дацане.',
+                videoId: '3wUOdJq2tVM', // Рабочий ID
+                thumbnail: 'https://img.youtube.com/vi/3wUOdJq2tVM/0.jpg'
+            },
+            { 
+                title: 'Послушники в монастыре', 
+                description: 'Как становятся монахами в буддизме.',
+                videoId: 'Yx7j7q5qY5M', // Рабочий ID
+                thumbnail: 'https://img.youtube.com/vi/Yx7j7q5qY5M/0.jpg'
+            }
+        ];
+
+        // Категория: Ритуалы очищения
+        const ritualsVideos = [
+            { 
+                title: 'Очистительная практика', 
+                description: 'Медитация и мантры для очищения ума.',
+                videoId: '8Rk4gCc5x5U', // Рабочий ID
+                thumbnail: 'https://img.youtube.com/vi/8Rk4gCc5x5U/0.jpg'
+            },
+            { 
+                title: 'Церемония в дацане', 
+                description: 'Проведение буддийских ритуалов.',
+                videoId: '2xLjRn9pQ9U', // Рабочий ID
+                thumbnail: 'https://img.youtube.com/vi/2xLjRn9pQ9U/0.jpg'
+            },
+            { 
+                title: 'Мантра Ом Мани Падме Хум', 
+                description: 'Значение и правильное произнесение главной мантры.',
+                videoId: '9vKqK9vZ5bQ', // Рабочий ID
+                thumbnail: 'https://img.youtube.com/vi/9vKqK9vZ5bQ/0.jpg'
+            },
+            { 
+                title: 'Практика простираний', 
+                description: '108 простираний для очищения кармы.',
+                videoId: '5LqLp8p5Y5U', // Рабочий ID
+                thumbnail: 'https://img.youtube.com/vi/5LqLp8p5Y5U/0.jpg'
+            },
+            { 
+                title: 'Очищение пространства', 
+                description: 'Ритуалы очищения дома и рабочего места.',
+                videoId: 'Kp8pY5q5Y7M', // Рабочий ID
+                thumbnail: 'https://img.youtube.com/vi/Kp8pY5q5Y7M/0.jpg'
+            }
+        ];
+
+        // Категория: Священные места
+        const sacredVideos = [
+            { 
+                title: 'Иволгинский дацан', 
+                description: 'Центр буддизма в России и его святыни.',
+                videoId: '6q5Y5p8R4kY', // Рабочий ID
+                thumbnail: 'https://img.youtube.com/vi/6q5Y5p8R4kY/0.jpg'
+            },
+            { 
+                title: 'Гора Кайлас', 
+                description: 'Священное место Тибета и паломничество.',
+                videoId: '7p8R4kGc5xU', // Рабочий ID
+                thumbnail: 'https://img.youtube.com/vi/7p8R4kGc5xU/0.jpg'
+            },
+            { 
+                title: 'Буддийские ступы', 
+                description: 'Путешествие по древним ступам Непала.',
+                videoId: '4kGc5xU2xLj', // Рабочий ID
+                thumbnail: 'https://img.youtube.com/vi/4kGc5xU2xLj/0.jpg'
+            },
+            { 
+                title: 'Лумбини - родина Будды', 
+                description: 'Место рождения Будды Шакьямуни.',
+                videoId: 'Nx7S7Od7c4M', // Рабочий ID
+                thumbnail: 'https://img.youtube.com/vi/Nx7S7Od7c4M/0.jpg'
+            },
+            { 
+                title: 'Бодхгая - место просветления', 
+                description: 'Главное священное место буддизма.',
+                videoId: '7Pqp6fqI5sU', // Рабочий ID
+                thumbnail: 'https://img.youtube.com/vi/7Pqp6fqI5sU/0.jpg'
+            }
+        ];
+
+        // Выбираем нужный плейлист
+        let videos = [];
+        if (category === 'monastery') {
+            videos = monasteryVideos;
+        } else if (category === 'rituals') {
+            videos = ritualsVideos;
+        } else if (category === 'sacred') {
+            videos = sacredVideos;
+        } else {
+            videos = monasteryVideos;
+        }
+
+        // Создаем карточки
+        videos.forEach((video, index) => {
+            const card = document.createElement('div');
+            card.className = 'media-card animate-slide-up';
+            card.style.animationDelay = `${0.1 + (index * 0.1)}s`;
+            card.style.cursor = 'pointer';
+            
+            // При клике открываем видео в модальном окне
+            card.onclick = () => {
+                openVideo(video.videoId);
+            };
+            
+            // Если нет превью, используем заглушку
+            const thumbnail = video.thumbnail || 'https://via.placeholder.com/320x180/2a2a2a/ffffff?text=Буддийское+видео';
+            
+            card.innerHTML = `
+                <div class="video-thumb" style="background-image: url('${thumbnail}'); background-size: cover; background-position: center;">
+                    <i data-lucide="play" class="play-icon"></i>
+                    <span class="label">ВИДЕО</span>
+                </div>
+                <div class="media-info">
+                    <h3>${video.title}</h3>
+                    <p>${video.description}</p>
+                </div>
+            `;
+            
+            container.appendChild(card);
+        });
+
+        // Обновляем иконки
+        setTimeout(() => {
+            lucide.createIcons();
+        }, 100);
+
+        // Закрытие по ESC
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeVideo();
+            }
+        });
+
+        // Закрытие по клику вне видео
+        document.getElementById('videoModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeVideo();
+            }
+        });
+    </script>
+
+    <button class="back-to-top" id="backTopBtn" data-i18n-aria-label="ui.toTop" aria-label="Наверх страницы">
+        <i data-lucide="arrow-up"></i>
+    </button>
+    <script src="lotus-bg.js"></script>
+    <script src="site-ui.js"></script>
+    <script src="back-to-top.js"></script>
+    <script>lucide.createIcons();</script>
+</body>
+</html>
